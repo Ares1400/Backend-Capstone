@@ -1,0 +1,147 @@
+erDiagram
+    USER {
+        int id PK
+        string username
+        string email
+        string password
+        string role
+        string phone_number
+        bool is_email_verified
+        datetime created_at
+    }
+
+    RESTAURANT {
+        int id PK
+        int owner_id FK
+        string name
+        string slug
+        string address
+        string city
+        string status
+        bool is_active
+        float average_rating
+        datetime created_at
+    }
+
+    CATEGORY {
+        int id PK
+        string name
+        string slug
+    }
+
+    FOODITEM {
+        int id PK
+        int restaurant_id FK
+        int category_id FK
+        string name
+        decimal price
+        decimal discount_price
+        bool is_available
+        int preparation_time
+        float rating
+    }
+
+    CART {
+        int id PK
+        int user_id FK
+        datetime updated_at
+    }
+
+    CARTITEM {
+        int id PK
+        int cart_id FK
+        int food_item_id FK
+        int quantity
+    }
+
+    ORDER {
+        int id PK
+        int customer_id FK
+        int restaurant_id FK
+        string status
+        string delivery_address
+        decimal subtotal
+        decimal delivery_fee
+        decimal total
+        datetime created_at
+    }
+
+    ORDERITEM {
+        int id PK
+        int order_id FK
+        int food_item_id FK
+        string food_name
+        decimal unit_price
+        int quantity
+    }
+
+    PAYMENT {
+        int id PK
+        int order_id FK
+        int customer_id FK
+        string method
+        string status
+        decimal amount
+        string reference
+    }
+
+    DELIVERY {
+        int id PK
+        int order_id FK
+        int rider_id FK
+        string status
+        decimal current_latitude
+        decimal current_longitude
+    }
+
+    REVIEW {
+        int id PK
+        int customer_id FK
+        int order_id FK
+        int food_item_id FK
+        int restaurant_id FK
+        int rating
+        text comment
+    }
+
+    FAVORITE {
+        int id PK
+        int user_id FK
+        int food_item_id FK
+        int restaurant_id FK
+    }
+
+    NOTIFICATION {
+        int id PK
+        int user_id FK
+        string type
+        string title
+        bool is_read
+    }
+
+    USER ||--o{ RESTAURANT : owns
+    USER ||--o{ ORDER : places
+    USER ||--|| CART : has
+    USER ||--o{ PAYMENT : makes
+    USER ||--o{ DELIVERY : "rides for"
+    USER ||--o{ REVIEW : writes
+    USER ||--o{ FAVORITE : saves
+    USER ||--o{ NOTIFICATION : receives
+
+    RESTAURANT ||--o{ FOODITEM : offers
+    RESTAURANT ||--o{ ORDER : fulfills
+    RESTAURANT ||--o{ REVIEW : receives
+    RESTAURANT ||--o{ FAVORITE : "is saved as"
+
+    CATEGORY ||--o{ FOODITEM : categorizes
+
+    CART ||--o{ CARTITEM : contains
+    FOODITEM ||--o{ CARTITEM : "added as"
+
+    ORDER ||--o{ ORDERITEM : contains
+    FOODITEM ||--o{ ORDERITEM : "ordered as"
+    ORDER ||--|| PAYMENT : "paid via"
+    ORDER ||--|| DELIVERY : "delivered via"
+    ORDER ||--o{ REVIEW : "reviewed via"
+    FOODITEM ||--o{ REVIEW : receives
+    FOODITEM ||--o{ FAVORITE : "is saved as"

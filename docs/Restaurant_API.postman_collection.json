@@ -1,0 +1,597 @@
+{
+  "info": {
+    "name": "Restaurant Management & Food Ordering System",
+    "description": "Full endpoint collection for the capstone API. Uses collection variables {{base_url}}, {{access_token}}, {{refresh_token}} so you rarely have to copy/paste IDs manually.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "restaurant_id", "value": "" },
+    { "key": "category_id", "value": "" },
+    { "key": "food_id", "value": "" },
+    { "key": "order_id", "value": "" },
+    { "key": "payment_reference", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/register/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"customer1\",\n  \"email\": \"customer1@example.com\",\n  \"password\": \"StrongPass123!\",\n  \"password_confirm\": \"StrongPass123!\",\n  \"role\": \"customer\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Restaurant Owner",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/register/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"owner1\",\n  \"email\": \"owner1@example.com\",\n  \"password\": \"StrongPass123!\",\n  \"password_confirm\": \"StrongPass123!\",\n  \"role\": \"restaurant_owner\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register Delivery Rider",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/register/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"rider1\",\n  \"email\": \"rider1@example.com\",\n  \"password\": \"StrongPass123!\",\n  \"password_confirm\": \"StrongPass123!\",\n  \"role\": \"delivery_rider\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (saves tokens automatically)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.collectionVariables.set('access_token', data.access);",
+                  "pm.collectionVariables.set('refresh_token', data.refresh);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/login/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer1@example.com\",\n  \"password\": \"StrongPass123!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/refresh/",
+            "body": { "mode": "raw", "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}" }
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/auth/profile/"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/auth/change-password/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"StrongPass123!\",\n  \"new_password\": \"NewStrongPass456!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Request Password Reset",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/api/auth/reset-password/",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"customer1@example.com\"\n}" }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/auth/logout/",
+            "body": { "mode": "raw", "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Restaurants",
+      "item": [
+        {
+          "name": "Register Restaurant (owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.data && data.data.id) { pm.collectionVariables.set('restaurant_id', data.data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/restaurants/register/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mama's Kitchen\",\n  \"description\": \"Authentic Nigerian dishes\",\n  \"address\": \"12 Allen Avenue\",\n  \"city\": \"Lagos\",\n  \"state\": \"Lagos\",\n  \"phone_number\": \"08012345678\",\n  \"email\": \"contact@mamaskitchen.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Browse Approved Restaurants (public)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/restaurants/" }
+        },
+        {
+          "name": "My Restaurants (owner)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/restaurants/mine/"
+          }
+        },
+        {
+          "name": "Restaurant Detail",
+          "request": { "method": "GET", "url": "{{base_url}}/api/restaurants/{{restaurant_id}}/" }
+        },
+        {
+          "name": "[Admin] Pending Restaurants",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/admin/restaurants/pending/"
+          }
+        },
+        {
+          "name": "[Admin] Approve Restaurant",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/admin/restaurants/{{restaurant_id}}/approve/"
+          }
+        },
+        {
+          "name": "[Admin] Reject Restaurant",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/admin/restaurants/{{restaurant_id}}/reject/",
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Incomplete documentation\"\n}" }
+          }
+        },
+        {
+          "name": "Restaurant Analytics (owner/admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/restaurants/{{restaurant_id}}/analytics/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Menu (Categories & Food)",
+      "item": [
+        {
+          "name": "List Categories (public)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/categories/" }
+        },
+        {
+          "name": "[Admin] Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["const d = pm.response.json(); pm.collectionVariables.set('category_id', d.id);"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/categories/",
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Fast Food\",\n  \"description\": \"Quick bites\"\n}" }
+          }
+        },
+        {
+          "name": "List Food Items (public, filterable)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/foods/?restaurant={{restaurant_id}}" }
+        },
+        {
+          "name": "Create Food Item (owner)",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "exec": ["const d = pm.response.json(); pm.collectionVariables.set('food_id', d.id);"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/foods/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurant\": {{restaurant_id}},\n  \"category\": {{category_id}},\n  \"name\": \"Jollof Rice\",\n  \"description\": \"Smoky party jollof\",\n  \"price\": \"2500.00\",\n  \"preparation_time\": 20\n}"
+            }
+          }
+        },
+        {
+          "name": "Food Item Detail",
+          "request": { "method": "GET", "url": "{{base_url}}/api/foods/{{food_id}}/" }
+        },
+        {
+          "name": "Update Food Item (owner)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/foods/{{food_id}}/",
+            "body": { "mode": "raw", "raw": "{\n  \"price\": \"2700.00\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Cart",
+      "item": [
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/cart/",
+            "body": { "mode": "raw", "raw": "{\n  \"food_item\": {{food_id}},\n  \"quantity\": 2\n}" }
+          }
+        },
+        {
+          "name": "View My Cart",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/cart/"
+          }
+        },
+        {
+          "name": "Update Cart Item Quantity",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/cart/1/",
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 3\n}" }
+          }
+        },
+        {
+          "name": "Remove Cart Item",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/cart/1/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Orders",
+      "item": [
+        {
+          "name": "Checkout (place order from cart)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.data && d.data.id) { pm.collectionVariables.set('order_id', d.data.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/orders/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"delivery_address\": \"45 Marina Street, Lagos\",\n  \"delivery_phone\": \"08099999999\",\n  \"notes\": \"Ring the bell twice\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List My Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/orders/"
+          }
+        },
+        {
+          "name": "Order Detail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/orders/{{order_id}}/"
+          }
+        },
+        {
+          "name": "Update Order Status (owner/admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/orders/{{order_id}}/status/",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"accepted\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Payments (Paystack)",
+      "item": [
+        {
+          "name": "Initiate Payment - Paystack",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json();",
+                  "if (d.data && d.data.reference) { pm.collectionVariables.set('payment_reference', d.data.reference); }",
+                  "console.log('Open this URL in a browser to pay with Paystack test card:', d.data.paystack_authorization_url);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/payments/",
+            "body": { "mode": "raw", "raw": "{\n  \"order\": {{order_id}},\n  \"method\": \"paystack\"\n}" }
+          }
+        },
+        {
+          "name": "Initiate Payment - Cash on Delivery",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/payments/",
+            "body": { "mode": "raw", "raw": "{\n  \"order\": {{order_id}},\n  \"method\": \"cash\"\n}" }
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/payments/verify/",
+            "body": { "mode": "raw", "raw": "{\n  \"reference\": \"{{payment_reference}}\"\n}" }
+          }
+        },
+        {
+          "name": "List My Payments",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/payments/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Deliveries",
+      "item": [
+        {
+          "name": "Create Delivery & Assign Rider (owner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/deliveries/",
+            "body": { "mode": "raw", "raw": "{\n  \"order\": {{order_id}},\n  \"rider\": 1\n}" }
+          }
+        },
+        {
+          "name": "List Deliveries (scoped by role)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/deliveries/"
+          }
+        },
+        {
+          "name": "Update Delivery Status (rider)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/deliveries/1/status/",
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"picked_up\",\n  \"current_latitude\": 6.5244,\n  \"current_longitude\": 3.3792\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Reviews",
+      "item": [
+        {
+          "name": "Submit Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/reviews/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order\": {{order_id}},\n  \"food_item\": {{food_id}},\n  \"rating\": 5,\n  \"comment\": \"Loved it!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Reviews for a Food Item",
+          "request": { "method": "GET", "url": "{{base_url}}/api/reviews/?food_item={{food_id}}" }
+        }
+      ]
+    },
+    {
+      "name": "9. Favorites",
+      "item": [
+        {
+          "name": "Add Favorite Food Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/favorites/",
+            "body": { "mode": "raw", "raw": "{\n  \"food_item\": {{food_id}}\n}" }
+          }
+        },
+        {
+          "name": "List My Favorites",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/favorites/"
+          }
+        },
+        {
+          "name": "Remove Favorite",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/favorites/1/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Notifications",
+      "item": [
+        {
+          "name": "List My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/notifications/"
+          }
+        },
+        {
+          "name": "Mark All Read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/notifications/read-all/"
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Admin Analytics",
+      "item": [
+        {
+          "name": "Platform Analytics",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/admin/analytics/"
+          }
+        },
+        {
+          "name": "List All Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/admin/users/"
+          }
+        },
+        {
+          "name": "Suspend User",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+            "url": "{{base_url}}/api/admin/users/2/suspend/"
+          }
+        }
+      ]
+    }
+  ]
+}
