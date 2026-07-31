@@ -23,7 +23,8 @@ from .serializers import OrderSerializer, CheckoutSerializer, OrderStatusUpdateS
 
 # Flat delivery fee for simplicity; a real system would compute this from
 # distance. Kept as a module constant so it's easy to find/change.
-DELIVERY_FEE = 500.00
+from decimal import Decimal
+DELIVERY_FEE = Decimal("500.00")
 
 
 class OrderListCreateView(generics.ListCreateAPIView):
