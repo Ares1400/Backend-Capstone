@@ -21,6 +21,15 @@ class CartView(APIView):
 
     permission_classes = [permissions.IsAuthenticated, IsCustomer]
 
+    def get(self, request):
+        """Return the authenticated customer's cart, creating an empty one if needed."""
+        cart = get_or_create_cart(request.user)
+        return success_response(
+            message="Cart retrieved successfully.",
+            data=CartSerializer(cart).data,
+            status=status.HTTP_200_OK,
+        )
+
     @swagger_auto_schema(
         request_body=CartItemSerializer,
         operation_description="Add a food item to the cart. If the item already exists, quantity is increased."

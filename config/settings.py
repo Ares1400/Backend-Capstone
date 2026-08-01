@@ -12,7 +12,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Core
 # ---------------------------------------------------------------------------
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-dev-key")
-DEBUG = config("DEBUG", default=True, cast=bool)
+# Unknown values such as "release" are treated as production mode instead of
+# preventing Django from starting with a ValueError.
+DEBUG = config(
+    "DEBUG",
+    default=False,
+    cast=lambda value: str(value).strip().lower() in {"1", "true", "yes", "on"},
+)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
 # ---------------------------------------------------------------------------
@@ -95,6 +101,16 @@ DATABASES = {
         },
     }
 }
+
+USE_SQLITE = config("USE_SQLITE", default=False, cast=bool)
+
+if USE_SQLITE:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # ---------------------------------------------------------------------------
 # Custom user model
