@@ -64,11 +64,15 @@ class RestaurantListView(generics.ListAPIView):
 
 
 class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """GET/PATCH/DELETE /api/restaurants/{id}/ — view or manage a single restaurant."""
-
-    queryset = Restaurant.objects.all()
     serializer_class = RestaurantSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOfRestaurant]
+
+    def get_queryset(self):
+        return Restaurant.objects.all()
+
+    def get_permissions(self):
+        if self.request.method in ('PUT', 'PATCH', 'DELETE'):
+            return [permissions.IsAuthenticated(), IsOwnerOfRestaurant()]
+        return [permissions.AllowAny()]
 
 
 class MyRestaurantsView(generics.ListAPIView):
