@@ -1,8 +1,8 @@
 """
 Serializers for registration, profile management, and password reset.
 
-Note: login itself is handled by SimpleJWT's TokenObtainPairView with a
-custom serializer (below) so the JWT payload also returns role + user id.
+Email verification is fully automatic — is_email_verified is set to True
+on registration with no email link or token required.
 """
 
 from django.contrib.auth import get_user_model
@@ -28,7 +28,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         read_only_fields = ("id",)
 
     def validate_role(self, value):
-        # Admin accounts are never created through public self-registration.
+        # Admin accounts cannot be created through public self-registration.
         if value == Role.ADMIN:
             raise serializers.ValidationError("You cannot self-register as an admin.")
         return value
@@ -42,6 +42,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         password = validated_data.pop("password")
         user = User(**validated_data)
         user.set_password(password)
+        user.is_email_verified = True  # automatic verification on registration
         user.save()
         return user
 
@@ -62,8 +63,7 @@ class UserSerializer(serializers.ModelSerializer):
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     Extends SimpleJWT's default serializer so the access/refresh token
-    response also includes basic user info — saves the frontend an
-    extra round trip after login.
+    response also includes basic user info.
     """
 
     @classmethod

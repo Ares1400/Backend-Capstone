@@ -6,6 +6,8 @@ Roles map directly onto the spec's "3. User Roles" section:
     - restaurant_owner -> 3.2 Restaurant Owner / Admin
     - customer         -> 3.3 Customer (User)
     - delivery_rider   -> 3.4 Delivery Rider
+
+Email verification is automatic on registration — no email link needed.
 """
 
 import uuid
@@ -24,8 +26,7 @@ class Role(models.TextChoices):
 class User(AbstractUser):
     """
     Extends Django's AbstractUser with role, phone number, profile photo,
-    and email-verification fields. Email is unique and used to log in,
-    per validation rule 10 ("Email must be unique").
+    and email-verification fields. Email is unique and used to log in.
     """
 
     email = models.EmailField(unique=True)
@@ -33,8 +34,8 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     profile_photo = models.ImageField(upload_to="profile_photos/", blank=True, null=True)
 
-    is_email_verified = models.BooleanField(default=False)
-    email_verification_token = models.UUIDField(default=uuid.uuid4, editable=False)
+    # Auto-verified on registration — no email link needed
+    is_email_verified = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

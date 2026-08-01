@@ -1,15 +1,3 @@
-"""
-Cart views.
-
-Covers spec section 4.5:
-    POST   /api/cart/        -> add item to cart
-    GET    /api/cart/        -> view current cart
-    DELETE /api/cart/{id}/   -> remove a cart item
-
-Also supports updating quantity via PATCH on the item id, which the spec's
-"Update quantity" feature implies but doesn't enumerate as a separate route.
-"""
-
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -25,15 +13,19 @@ def get_or_create_cart(user):
     cart, _ = Cart.objects.get_or_create(user=user)
     return cart
 
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 class CartView(APIView):
-    """GET /api/cart/ — view current cart. POST /api/cart/ — add an item (or bump quantity)."""
+    """GET /api/cart/ — view current cart. POST /api/cart/ — add an item."""
 
     permission_classes = [permissions.IsAuthenticated, IsCustomer]
 
-    def get(self, request):
-        cart = get_or_create_cart(request.user)
-        return success_response(data=CartSerializer(cart).data)
+    @swagger_auto_schema(
+        request_body=CartItemSerializer,
+        operation_description="Add a food item to the cart. If the item already exists, quantity is increased."
+    )
+
 
     def post(self, request):
         cart = get_or_create_cart(request.user)
@@ -58,9 +50,18 @@ class CartView(APIView):
 
 
 class CartItemDetailView(APIView):
-    """PATCH /api/cart/{id}/ — update quantity. DELETE /api/cart/{id}/ — remove item."""
 
     permission_classes = [permissions.IsAuthenticated, IsCustomer]
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'quantity': openapi.Schema(type=openapi.TYPE_INTEGER, description='New quantity')
+            }
+        ),
+        operation_description="Update the quantity of a cart item."
+    )
 
     def get_item(self, request, id):
         return get_object_or_404(CartItem, id=id, cart__user=request.user)

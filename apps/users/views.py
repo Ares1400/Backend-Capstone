@@ -1,27 +1,21 @@
 """
 Authentication & profile views.
 
-Covers spec section 4.1 Authentication Module:
-    POST /api/auth/register/
-    POST /api/auth/login/
-    POST /api/auth/logout/
-    POST /api/auth/refresh/
-    POST /api/auth/reset-password/
-
-Plus supporting endpoints for profile management and email verification
-that the spec implies but doesn't enumerate explicitly.
+Email verification is fully automatic on registration.
+The verify-email endpoint has been removed since it is no longer needed.
 """
 
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
-from drf_yasg.utils import swagger_auto_schema
 
 from apps.core.responses import success_response
 from .models import PasswordResetToken
@@ -38,7 +32,7 @@ User = get_user_model()
 
 
 class RegisterView(generics.CreateAPIView):
-    """POST /api/auth/register/ — create a new account (customer, restaurant_owner, or delivery_rider)."""
+    """POST /api/auth/register/ — create a new account (auto-verified immediately)."""
 
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -49,18 +43,8 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Fire-and-forget verification email (console backend in dev).
-        verify_link = f"{settings.FRONTEND_URL}/verify-email/{user.email_verification_token}/"
-        send_mail(
-            subject="Verify your email",
-            message=f"Welcome {user.username}! Verify your email: {verify_link}",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True,
-        )
-
         return success_response(
-            message="Registration successful. Please check your email to verify your account.",
+            message="Registration successful. You can now log in.",
             data=UserSerializer(user).data,
             status=status.HTTP_201_CREATED,
         )
@@ -86,6 +70,17 @@ class LogoutView(APIView):
 
     @swagger_auto_schema(
         operation_description="Logs the user out by blacklisting their refresh token.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["refresh"],
+            properties={
+                "refresh": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="The refresh token to blacklist"
+                ),
+            }
+        ),
+        responses={200: "Logged out successfully"}
     )
     def post(self, request):
         refresh_token = request.data.get("refresh")
@@ -120,6 +115,24 @@ class ChangePasswordView(APIView):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_description="Change the authenticated user's password.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["old_password", "new_password"],
+            properties={
+                "old_password": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Current password"
+                ),
+                "new_password": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="New password (min 8 characters)"
+                ),
+            }
+        ),
+        responses={200: "Password changed successfully"}
+    )
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -141,6 +154,25 @@ class PasswordResetRequestView(APIView):
 
     permission_classes = [permissions.AllowAny]
 
+    @swagger_auto_schema(
+        operation_description=(
+            "Request a password reset link. Always returns success "
+            "regardless of whether the email exists — this prevents "
+            "attackers from probing which emails are registered."
+        ),
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["email"],
+            properties={
+                "email": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format="email",
+                    description="The registered email address"
+                ),
+            }
+        ),
+        responses={200: "Reset link sent if email exists"}
+    )
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -158,7 +190,6 @@ class PasswordResetRequestView(APIView):
                 fail_silently=True,
             )
 
-        # Always return the same message — don't leak whether an email exists.
         return success_response(
             message="If an account with that email exists, a reset link has been sent."
         )
@@ -169,6 +200,25 @@ class PasswordResetConfirmView(APIView):
 
     permission_classes = [permissions.AllowAny]
 
+    @swagger_auto_schema(
+        operation_description="Confirm a password reset using the token from the reset email.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["token", "new_password"],
+            properties={
+                "token": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format="uuid",
+                    description="Reset token received via email"
+                ),
+                "new_password": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="The new password"
+                ),
+            }
+        ),
+        responses={200: "Password reset successful"}
+    )
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -184,15 +234,3 @@ class PasswordResetConfirmView(APIView):
         reset_token.save()
 
         return success_response(message="Password reset successful. You can now log in.")
-
-
-class VerifyEmailView(APIView):
-    """GET /api/auth/verify-email/<uuid:token>/ — confirm email ownership."""
-
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request, token):
-        user = get_object_or_404(User, email_verification_token=token)
-        user.is_email_verified = True
-        user.save()
-        return success_response(message="Email verified successfully.")
