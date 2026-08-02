@@ -67,13 +67,16 @@ class RestaurantDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = RestaurantSerializer
 
     def get_queryset(self):
-        return Restaurant.objects.all()
+        qs = Restaurant.objects.all()
+        print(f"DEBUG: queryset count = {qs.count()}")
+        for r in qs:
+            print(f"DEBUG: restaurant id={r.id} name={r.name}")
+        return qs
 
     def get_permissions(self):
         if self.request.method in ('PUT', 'PATCH', 'DELETE'):
             return [permissions.IsAuthenticated(), IsOwnerOfRestaurant()]
         return [permissions.AllowAny()]
-
 
 class MyRestaurantsView(generics.ListAPIView):
     """GET /api/restaurants/mine/ — restaurant owner's own restaurants, any status."""

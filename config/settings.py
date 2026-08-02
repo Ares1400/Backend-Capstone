@@ -102,16 +102,6 @@ DATABASES = {
     }
 }
 
-USE_SQLITE = config("USE_SQLITE", default=False, cast=bool)
-
-if USE_SQLITE:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-
 # ---------------------------------------------------------------------------
 # Custom user model
 # ---------------------------------------------------------------------------
