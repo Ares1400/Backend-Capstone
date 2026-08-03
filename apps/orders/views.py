@@ -7,7 +7,8 @@ Covers spec section 4.6 endpoints:
     GET    /api/orders/{id}/        -> order detail
     PATCH  /api/orders/{id}/status/ -> update order status (lifecycle)
 """
-
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -139,16 +140,29 @@ class OrderDetailView(generics.RetrieveAPIView):
 
 
 class OrderStatusUpdateView(APIView):
-    """
-    PATCH /api/orders/{id}/status/ — advance the order through its lifecycle.
-
-    Only the restaurant owner (for their own orders) or an admin can change
-    status, except for cancellation, which the customer may also trigger
-    while the order is still pending.
-    """
+    """PATCH /api/orders/{id}/status/ — advance the order lifecycle."""
 
     permission_classes = [permissions.IsAuthenticated]
 
+    @swagger_auto_schema(
+        operation_description=(
+            "Update order status. Valid transitions: "
+            "pending → accepted → preparing → out_for_delivery → delivered. "
+            "Customers can only cancel their own pending orders."
+        ),
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["status"],
+            properties={
+                "status": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["accepted", "preparing", "out_for_delivery", "delivered", "cancelled"],
+                    description="New order status"
+                ),
+            }
+        ),
+        responses={200: OrderSerializer}
+    )
     def patch(self, request, id):
         order = get_object_or_404(Order, id=id)
         serializer = OrderStatusUpdateSerializer(data=request.data)

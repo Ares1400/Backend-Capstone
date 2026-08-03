@@ -6,7 +6,8 @@ Covers spec section 4.8 endpoints:
     GET   /api/deliveries/             -> list (scoped by role)
     PATCH /api/deliveries/{id}/status/ -> rider updates delivery status
 """
-
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, permissions, status
@@ -119,6 +120,28 @@ class DeliveryStatusUpdateView(APIView):
     """PATCH /api/deliveries/{id}/status/ — rider accepts/rejects or advances delivery status."""
 
     permission_classes = [permissions.IsAuthenticated, IsDeliveryRider]
+    
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=["status"],
+            properties={
+                "status": openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=["accepted", "picked_up", "en_route", "delivered", "rejected"],
+                    description="New delivery status"
+                ),
+                "current_latitude": openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="Current GPS latitude (optional)"
+                ),
+                "current_longitude": openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description="Current GPS longitude (optional)"
+                ),
+            }
+        )
+    )
 
     def patch(self, request, id):
         delivery = get_object_or_404(Delivery, id=id, rider=request.user)
